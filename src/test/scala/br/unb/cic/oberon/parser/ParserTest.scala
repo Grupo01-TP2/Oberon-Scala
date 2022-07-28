@@ -2251,5 +2251,76 @@ class ParserTestSuite extends AbstractTestSuite {
     assert(stmts.head == new AssignmentStmt(RecordAssignment(VarExpression("list"), "value"), IntValue(10)))
     assert(stmts(1) == new AssignmentStmt(RecordAssignment(VarExpression("list"), "next"), NullValue))
   }
+
+  test(testName = "Testing the module CharArrayInitializationStmt"){
+    // val module = ScalaParser.parseResource("stmts/charArrayInitializationStmt.oberon")
+    // assert(module.name == "charArrayInitializationStmt")
+    // assert(module.stmt.isDefined)
+    //
+    // module.stmt.get match {
+    //   case SequenceStmt(stmts) =>
+    //     assert(stmts.length == 3)
+    //     assert(stmts(0).isInstanceOf[CharArrayInitializationStmt])
+    //     val arrayInitializationStmt = stmts(0).asInstanceOf[CharArrayInitializationStmt]
+    //     assert(arrayInitializationStmt.exp.asInstanceOf[Value].value == "20010db885a308d313198a2e03707344")
+    //     assert(arrayInitializationStmt.initializingArray.asInstanceOf[VarAssignment].varName == "ipv6")
+    // }
+  }
+
+  test(testName = "Testing the module GeneralArrayInitializationAssignment"){
+    val module = ScalaParser.parseResource("stmts/generalArrayInitializationAssignment.oberon")
+    assert(module.name == "generalArrayInitializationAssignment")
+    assert(module.stmt.isDefined)
+
+    module.stmt.get match {
+      case SequenceStmt(stmts) =>
+        assert(stmts.length == 6)
+
+        // Testing simple array initialization.
+        assert(stmts(0).isInstanceOf[AssignmentStmt])
+        val assignmentStmt = stmts(0).asInstanceOf[AssignmentStmt]
+
+        // Testing designator
+        assert(assignmentStmt.designator.isInstanceOf[ArrayAssignmentEmpty])
+        val designator = assignmentStmt.designator.asInstanceOf[ArrayAssignmentEmpty]
+        assert(designator.array.isInstanceOf[VarExpression])
+        assert(designator.array.asInstanceOf[VarExpression].name == "temperatureRecords")
+
+        // Testing arrayList
+        assert(assignmentStmt.exp.isInstanceOf[ArrayList])
+        val arrayList = assignmentStmt.exp.asInstanceOf[ArrayList]
+        assert(arrayList.arrayList(2).asInstanceOf[Value].value == 35.20000076293945)
+
+        // // Testing record array initialization.
+        assert(stmts(2).isInstanceOf[AssignmentStmt])
+        val assignmentStmt2 = stmts(2).asInstanceOf[AssignmentStmt]
+
+        // Testing designator
+        assert(assignmentStmt2.designator.isInstanceOf[ArrayAssignmentEmpty])
+        val designator2 = assignmentStmt2.designator.asInstanceOf[ArrayAssignmentEmpty]
+        assert(designator2.array.isInstanceOf[FieldAccessExpression])
+        assert(designator2.array.asInstanceOf[FieldAccessExpression].name == "studentsNames")
+
+        // Testing arrayList
+        assert(assignmentStmt2.exp.isInstanceOf[ArrayList])
+        val arrayList2 = assignmentStmt2.exp.asInstanceOf[ArrayList]
+        assert(arrayList2.arrayList(4).asInstanceOf[Value].value == "L. Jackson" )
+
+        // Testing subarray initialization.
+
+        assert(stmts(3).isInstanceOf[AssignmentStmt])
+        val arrayInitializationStmt3 = stmts(3).asInstanceOf[AssignmentStmt]
+        assert(arrayInitializationStmt3.exp.asInstanceOf[ArrayList].arrayList(0).asInstanceOf[Value].value == 3.4000000953674316)
+        // assert(arrayInitializationStmt3.initializingArray.asInstanceOf[ArrayAssignment].array.asInstanceOf[FieldAccessExpression].name == "studentsGrades")
+        //
+        // // Testing variables and operations as initializers.
+        // assert(stmts(5).isInstanceOf[GeneralArrayInitializationStmt])
+        // val arrayInitializationStmt5 = stmts(5).asInstanceOf[GeneralArrayInitializationStmt]
+        // assert(arrayInitializationStmt5.expList(0).asInstanceOf[AddExpression].left.asInstanceOf[Value].value.toString + " + " + arrayInitializationStmt5.expList(0).asInstanceOf[AddExpression].right.asInstanceOf[VarExpression].name == "2.0 + sum")
+        // assert(arrayInitializationStmt5.initializingArray.asInstanceOf[ArrayAssignment].array.asInstanceOf[FieldAccessExpression].name == "studentsGrades")
+      }
+
+    }
+
 }
 

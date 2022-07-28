@@ -372,6 +372,18 @@ class ParserVisitor {
       exp = ArraySubscript(arrayBase, index)
     }
 
+    override def visitArrayList(ctx: OberonParser.ArrayListContext): Unit = {
+      val arrayList = new ListBuffer[Expression]
+
+      ctx.arguments().expression().forEach(e => {
+        e.accept(this)
+        arrayList += exp
+      })
+
+      exp = ArrayList(arrayList.toList)
+
+    }
+
     override def visitPointerAccess(ctx: OberonParser.PointerAccessContext): Unit = {
       exp = PointerAccessExpression(ctx.name.getText)
     }
@@ -726,6 +738,14 @@ class ParserVisitor {
 
 
       assignmentAlt = ArrayAssignment(array, elem)
+    }
+
+    override def visitArrayAssignmentEmpty(ctx: OberonParser.ArrayAssignmentEmptyContext): Unit = {
+      val expressionVisitor = new ExpressionVisitor()
+      ctx.arrayEmpty.accept(expressionVisitor)
+      val array = expressionVisitor.exp
+
+      assignmentAlt = ArrayAssignmentEmpty(array)
     }
 
     override def visitRecordAssignment(ctx: OberonParser.RecordAssignmentContext): Unit = {

@@ -164,6 +164,7 @@ case class Location(loc: Int) extends Expression
 case class Brackets(exp: Expression) extends Expression
 case class ArrayValue(value: ListBuffer[Expression]) extends Value { type T = ListBuffer[Expression] }
 case class ArraySubscript(arrayBase: Expression, index: Expression) extends Expression
+case class ArrayList(arrayList: List[Expression]) extends Expression
 case class Undef() extends Expression
 case class FieldAccessExpression(exp: Expression, name: String) extends Expression
 case class PointerAccessExpression(name: String) extends Expression
@@ -236,6 +237,7 @@ sealed trait Designator
 
 case class VarAssignment(varName: String) extends Designator
 case class ArrayAssignment(array: Expression, index: Expression) extends Designator
+case class ArrayAssignmentEmpty(array: Expression) extends Designator
 case class RecordAssignment(record: Expression, field: String) extends Designator
 case class PointerAssignment(pointerName: String) extends Designator
 
