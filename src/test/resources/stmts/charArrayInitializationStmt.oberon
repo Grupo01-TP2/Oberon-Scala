@@ -1,0 +1,13 @@
+MODULE charArrayInitializationStmt;
+
+VAR
+    ipv6 : ARRAY 32 OF CHAR;
+    fourthElement : CHAR;
+
+BEGIN
+    ipv6[] := "20010db885a308d313198a2e03707344";
+    fourthElement := ipv6[3];
+    write(fourthElement)
+END
+
+END charArrayInitializationStmt.
