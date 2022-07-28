@@ -454,6 +454,33 @@ class ParserVisitor {
 
       stmt = AssignmentStmt(designator, visitor.exp)
     }
+    
+    override def visitCharArrayInitializationStmt(ctx: OberonParser.CharArrayInitializationStmtContext): Unit = {
+      val visitor = new ExpressionVisitor()
+      ctx.exp.accept(visitor)
+      val expression = visitor.exp
+
+      val visitor2 = new AssignmentAlternativeVisitor()
+      ctx.initializingArray.accept(visitor2)
+      val designator = visitor2.assignmentAlt
+
+      stmt = CharArrayInitializationStmt(designator, expression)
+    }
+    
+    override def visitGeneralArrayInitializationStmt(ctx: OberonParser.GeneralArrayInitializationStmtContext): Unit = {
+      val expListScala = new ListBuffer[Expression]
+      val visitor = new ExpressionVisitor()
+      ctx.expList.asScala.foreach(e => {
+        e.accept(visitor)
+        expListScala += visitor.exp
+        })
+
+      val visitor2 = new AssignmentAlternativeVisitor()
+      ctx.initializingArray.accept(visitor2)
+      val designator = visitor2.assignmentAlt
+
+      stmt = GeneralArrayInitializationStmt(designator, expListScala.toList)
+    }
 
     override def visitSequenceStmt(ctx: OberonParser.SequenceStmtContext): Unit = {
       val stmts = new ListBuffer[Statement]
