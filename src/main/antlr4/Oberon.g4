@@ -85,6 +85,8 @@ qualifiedName
 
 statement
  : des = designator ':=' exp = expression                                                                                     #AssignmentStmt
+ | initializingArray = designator '[]' ':=' exp = stringValue                                                                 #CharArrayInitializationStmt
+ | initializingArray = designator '[]' ':=' '[' expList += expression  (',' expList += expression )* ']'                      #GeneralArrayInitializationStmt
  | stmt += statement (';' stmt += statement)+                                                                                 #SequenceStmt
  | 'readLongReal'   '(' var = Id ')'                                                                                          #ReadLongRealStmt
  | 'readReal'       '(' var = Id ')'                                                                                          #ReadRealStmt
