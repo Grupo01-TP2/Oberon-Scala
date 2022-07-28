@@ -2251,5 +2251,56 @@ class ParserTestSuite extends AbstractTestSuite {
     assert(stmts.head == new AssignmentStmt(RecordAssignment(VarExpression("list"), "value"), IntValue(10)))
     assert(stmts(1) == new AssignmentStmt(RecordAssignment(VarExpression("list"), "next"), NullValue))
   }
+	
+  test(testName = "Testing the module CharArrayInitializationStmt"){
+    val module = ScalaParser.parseResource("stmts/charArrayInitializationStmt.oberon")
+    assert(module.name == "charArrayInitializationStmt")
+    assert(module.stmt.isDefined)
+
+    module.stmt.get match {
+      case SequenceStmt(stmts) =>
+        assert(stmts.length == 3)
+        assert(stmts(0).isInstanceOf[CharArrayInitializationStmt])
+        val arrayInitializationStmt = stmts(0).asInstanceOf[CharArrayInitializationStmt]
+        assert(arrayInitializationStmt.exp.asInstanceOf[Value].value == "20010db885a308d313198a2e03707344")
+        assert(arrayInitializationStmt.initializingArray.asInstanceOf[VarAssignment].varName == "ipv6")
+    }
+  }
+
+  test(testName = "Testing the module GeneralArrayInitializationStmt"){
+    val module = ScalaParser.parseResource("stmts/generalArrayInitializationStmt.oberon")
+    assert(module.name == "generalArrayInitializationStmt")
+    assert(module.stmt.isDefined)
+
+    module.stmt.get match {
+      case SequenceStmt(stmts) =>
+        assert(stmts.length == 6)
+
+        // Testing simple array initialization.
+        assert(stmts(0).isInstanceOf[GeneralArrayInitializationStmt])
+        val arrayInitializationStmt = stmts(0).asInstanceOf[GeneralArrayInitializationStmt]
+        assert(arrayInitializationStmt.expList(2).asInstanceOf[Value].value == 35.20000076293945)
+        assert(arrayInitializationStmt.initializingArray.asInstanceOf[VarAssignment].varName == "temperatureRecords")
+
+        // Testing record array initialization.
+        assert(stmts(2).isInstanceOf[GeneralArrayInitializationStmt])
+        val arrayInitializationStmt2 = stmts(2).asInstanceOf[GeneralArrayInitializationStmt]
+        assert(arrayInitializationStmt2.expList(4).asInstanceOf[Value].value == "L. Jackson")
+        assert(arrayInitializationStmt2.initializingArray.asInstanceOf[RecordAssignment].field == "studentsNames")
+
+        // Testing subarray initialization.
+        assert(stmts(3).isInstanceOf[GeneralArrayInitializationStmt])
+        val arrayInitializationStmt3 = stmts(3).asInstanceOf[GeneralArrayInitializationStmt]
+        assert(arrayInitializationStmt3.expList(0).asInstanceOf[Value].value == 3.4000000953674316)
+        assert(arrayInitializationStmt3.initializingArray.asInstanceOf[ArrayAssignment].array.asInstanceOf[FieldAccessExpression].name == "studentsGrades")
+
+        // Testing variables and operations as initializers.
+        assert(stmts(5).isInstanceOf[GeneralArrayInitializationStmt])
+        val arrayInitializationStmt5 = stmts(5).asInstanceOf[GeneralArrayInitializationStmt]
+        assert(arrayInitializationStmt5.expList(0).asInstanceOf[AddExpression].left.asInstanceOf[Value].value.toString + " + " + arrayInitializationStmt5.expList(0).asInstanceOf[AddExpression].right.asInstanceOf[VarExpression].name == "2.0 + sum")
+        assert(arrayInitializationStmt5.initializingArray.asInstanceOf[ArrayAssignment].array.asInstanceOf[FieldAccessExpression].name == "studentsGrades")
+    }
+  }	
+	
 }
 
