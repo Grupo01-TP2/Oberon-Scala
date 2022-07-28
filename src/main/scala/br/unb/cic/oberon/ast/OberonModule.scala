@@ -204,6 +204,8 @@ object Statement{
 }
 
 case class AssignmentStmt(designator: Designator, exp: Expression) extends Statement
+case class CharArrayInitializationStmt(initializingArray: Designator, exp: Expression) extends Statement
+case class GeneralArrayInitializationStmt(initializingArray: Designator, expList: List[Expression]) extends Statement
 case class SequenceStmt(stmts: List[Statement]) extends Statement
 case class ReadLongRealStmt(varName: String) extends Statement
 case class ReadRealStmt(varName: String) extends Statement
