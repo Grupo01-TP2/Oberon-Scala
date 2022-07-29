@@ -372,6 +372,18 @@ class ParserVisitor {
       exp = ArraySubscript(arrayBase, index)
     }
 
+    override def visitArrayList(ctx: OberonParser.ArrayListContext): Unit = {
+      val arrayList = new ListBuffer[Expression]
+
+      ctx.arguments().expression().forEach(e => {
+        e.accept(this)
+        arrayList += exp
+      })
+
+      exp = ArrayList(arrayList.toList)
+
+    }
+    
     override def visitPointerAccess(ctx: OberonParser.PointerAccessContext): Unit = {
       exp = PointerAccessExpression(ctx.name.getText)
     }
