@@ -71,6 +71,7 @@ expression
  | name = qualifiedName '(' arguments? ')'                                                #FunctionCall
  | exp = expression '.' name = Id                                                         #FieldAccess
  | arrayBase = expression '[' index = expression ']'                                      #ArraySubscript
+ | arrayList = '[' arguments? ']'                                                         #ArrayList
  | name = Id '^'                                                                          #PointerAccess
  | '~' exp = expression                                                                   #NotExpression
  | left = expression opr = ('=' | '#' | '<' | '<=' | '>' | '>=')  right = expression      #RelExpression
