@@ -375,12 +375,12 @@ class ParserVisitor {
     override def visitArrayList(ctx: OberonParser.ArrayListContext): Unit = {
       val arrayList = new ListBuffer[Expression]
 
-      ctx.arguments().expression().forEach(e => {
+      ctx.expressionList().expression().forEach(e => {
         e.accept(this)
         arrayList += exp
       })
 
-      exp = ArrayList(arrayList.toList)
+      exp = ArrayValue(arrayList)
 
     }
     
