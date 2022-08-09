@@ -1478,8 +1478,8 @@ class ParserTestSuite extends AbstractTestSuite {
 
     assert(stmts.head == ReadIntStmt("x"))
     assert(stmts(1) == new AssignmentStmt(ArrayAssignment(VarExpression("array"), IntValue(0)), VarExpression("x")))
-
   }
+
   test("Testing the oberon ArrayAssignmentStmt02 code. This module has an array assignment in IF-THEN") {
     val module = ScalaParser.parseResource("stmts/ArrayAssignmentStmt02.oberon")
 
@@ -2252,8 +2252,8 @@ class ParserTestSuite extends AbstractTestSuite {
     assert(stmts(1) == new AssignmentStmt(RecordAssignment(VarExpression("list"), "next"), NullValue))
   }
 	
-test(testName = "Testing the module ArrayInitialization"){
-    val module = ScalaParser.parseResource("stmts/ArrayInitialization.oberon")
+  test(testName = "Testing the module ArrayInitializationStmt01"){
+    val module = ScalaParser.parseResource("stmts/ArrayInitializationStmt01.oberon")
     assert(module.name == "ArrayInitialization")
     assert(module.stmt.isDefined)
 
@@ -2303,6 +2303,38 @@ test(testName = "Testing the module ArrayInitialization"){
                + ']'
                == "calculusGrades.studentsGrades[2]")
     }
+  }	
+
+  test(testName = "Testing the module ArrayInitializationStmt02"){
+    val module = ScalaParser.parseResource("stmts/ArrayInitializationStmt02.oberon")
+    assert(module.name == "ArrayInitialization")
+    assert(module.stmt.isDefined)
+
+    module.stmt.get match {
+      case SequenceStmt(stmts) => assert(stmts.length == 2)
+      case _ => fail("2 statements expected")
+    }
+
+    val sequence = module.stmt.get.asInstanceOf[SequenceStmt]
+    val stmt = sequence.stmts
+
+    // AssignmentStmt(
+    //   VarAssignment(myProfileArray),
+    //   ArrayValue(
+    //     ListBuffer(
+    //       ArrayValue(
+    //         ListBuffer(StringValue(Peter), StringValue(Parker))
+    //       ), 
+    //       IntValue(22), 
+    //       RealValue(1.7999999523162842)
+    //     )
+    //   )
+    // )
+    
+    assert(stmt.head.asInstanceOf[AssignmentStmt].exp.asInstanceOf[ArrayValue].value(0).asInstanceOf[ArrayValue].value(0).asInstanceOf[Value].value == "Peter")
+    assert(stmt.head.asInstanceOf[AssignmentStmt].exp.asInstanceOf[ArrayValue].value(0).asInstanceOf[ArrayValue].value(1).asInstanceOf[Value].value == "Parker")
+    assert(stmt.head.asInstanceOf[AssignmentStmt].exp.asInstanceOf[ArrayValue].value(1).asInstanceOf[Value].value == 22)
+    assert(stmt.head.asInstanceOf[AssignmentStmt].exp.asInstanceOf[ArrayValue].value(2).asInstanceOf[Value].value == 1.7999999523162842)
   }	
 }
 
