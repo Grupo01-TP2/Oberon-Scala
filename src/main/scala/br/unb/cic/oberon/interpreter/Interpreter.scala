@@ -60,9 +60,25 @@ class Interpreter extends OberonVisitorAdapter {
   }
 
   override def visit(variable: VariableDeclaration): Unit = {
-    env.baseType(variable.variableType) match {
-      case Some(ArrayType(length, baseType)) => env.setGlobalVariable(variable.name, ArrayValue(ListBuffer.fill(length)(Undef()), ArrayType(length, baseType)))
-      case _ => env.setGlobalVariable(variable.name, Undef())
+    env.setGlobalVariable(variable.name, getUndefVariableValue(variable.variableType))
+  }
+
+  override def getUndefVariableValue(variableType: Type) : Expression = {
+    variableType match {
+      case ReferenceToUserDefinedType(_) =>
+        val Some(baseType) = env.baseType(variableType)
+        getUndefVariableValue(baseType)
+      case ArrayType(lenght, baseType) =>
+        SimpleArrayValue(ListBuffer.fill(lenght)(getUndefVariableValue(baseType)))
+      case RecordType(variables) =>
+        val recordValue = RecordValue(ListBuffer())
+        variables.foreach(v => recordValue.value.append(
+          FieldValue(v.name, 
+            getUndefVariableValue(v.variableType))))
+      case PointerType(variableType) =>
+        getUndefVariableValue(variableType)
+      case _ =>
+        Undef()
     }
   }
 
@@ -101,12 +117,21 @@ class Interpreter extends OberonVisitorAdapter {
     // otherwise, we pattern-match on the current stmt.
     stmt match {
       case AssignmentStmt(designator, exp) =>
+        val newValue = evalExpression(exp)
         designator match {
-          case ArrayAssignment(array, index) => visitArrayAssignment(array, index, exp)
-          //TODO:
-          case RecordAssignment(_, _) => ???
-          case PointerAssignment(_) => ???
-          case VarAssignment(name) => env.setVariable(name, evalExpression(exp))
+          case VarAssignment(varName) =>
+            env.setVariable(varName, newValue)
+          case PointerAssignment(pointerName) =>
+            env.setVariable(pointerName, newValue)
+          case ArrayAssignment(array, index) =>
+            val intIndex = evalExpression(index).asInstanceOf[IntValue]
+            val (varName, currentVarExpValue, targetIndexStack) = getArrayAssignmentInputs(array, ListBuffer(intIndex.value))
+            val newFullValue = getNewSimpleArrayValueFromArrayAssignment(currentVarExpValue.asInstanceOf[SimpleArrayValue], newValue, targetIndexStack)
+            env.setVariable(varName, newFullValue)
+          case RecordAssignment(record, field) =>
+            val (varName, currentVarExpValue, targetFieldStack) = getRecordAssignmentInputs(record, ListBuffer(field))
+            val newFullValue = getNewSimpleArrayValueFromRecordAssignment(currentVarExpValue.asInstanceOf[RecordValue], newValue, targetFieldStack)
+            env.setVariable(varName, newFullValue)
         }
 
       case SequenceStmt(stmts) =>
@@ -160,6 +185,69 @@ class Interpreter extends OberonVisitorAdapter {
         callProcedure(name, args)
         env.pop()
     }
+  }
+
+  private def getArrayAssignmentInputs(expression: Expression, targetIndexStack: ListBuffer[Int]): (String, Expression, ListBuffer[Int]) = {
+    expression match {
+      case ArraySubscript(arrayBase, i) =>
+        val intIndex = evalExpression(i).asInstanceOf[IntValue].value
+        getArrayAssignmentInputs(arrayBase, targetIndexStack.append(intIndex))
+      case VarExpression(name) =>
+        val currentVarExpValue = env.lookup(name)
+        currentVarExpValue match {
+          case Some(value) => (name, value, targetIndexStack)
+          case _ => (name, Undef(), targetIndexStack)
+        }
+    }
+  }
+
+  private def getNewSimpleArrayValueFromArrayAssignment(currentVarExpValue: SimpleArrayValue, newValue: Expression, targetIndexStack: ListBuffer[Int]) : Expression = {
+    if (targetIndexStack.length > 1) {
+      val index = targetIndexStack.last
+      targetIndexStack.dropRightInPlace(1)
+      currentVarExpValue.value(index) = getNewSimpleArrayValueFromArrayAssignment(currentVarExpValue.value(index).asInstanceOf[SimpleArrayValue], newValue, targetIndexStack)
+      currentVarExpValue
+    }
+    else {
+      val index = targetIndexStack.last
+      currentVarExpValue.value(index) = newValue
+      currentVarExpValue
+    }
+  }
+
+  private def getRecordAssignmentInputs(expression: Expression, targetFieldStack: ListBuffer[String]) : (String, Expression, ListBuffer[String]) = {
+    expression match {
+      case FieldAccessExpression(exp, name) => getRecordAssignmentInputs(exp, targetFieldStack.append(name))
+      case VarExpression(name) =>
+        val currentVarExpValue = env.lookup(name)
+        currentVarExpValue match {
+          case Some(value) => (name, value, targetFieldStack)
+          case _ => (name, Undef(), targetFieldStack)
+        }
+    }
+  }
+
+  private def getNewSimpleArrayValueFromRecordAssignment(currentVarExpValue: RecordValue, newValue: Expression, targetFieldStack: ListBuffer[String]) : Expression = {
+    val field = targetFieldStack.last
+    targetFieldStack.dropRightInPlace(1)
+    val newVarExpValue = RecordValue(ListBuffer())
+    if (targetFieldStack.length > 1) {
+      for (f <- currentVarExpValue.value) {
+        if (f.name == field) {
+          newVarExpValue.value.append(FieldValue(f.name, getNewSimpleArrayValueFromRecordAssignment(f.value.asInstanceOf[RecordValue], newValue, targetFieldStack)))
+        }
+        else newVarExpValue.value.append(f)
+      }
+    }
+    else {
+      for (f <- currentVarExpValue.value) {
+        if (f.name == field) {
+          newVarExpValue.value.append(FieldValue(f.name, newValue))
+        }
+        else newVarExpValue.value.append(f)
+      }
+    }
+    newVarExpValue
   }
 
   private def checkIfElseIfStmt(condition: Expression, thenStmt: Statement, listOfElseIf: List[ElseIfStmt], elseStmt: Option[Statement]): Unit = {
@@ -263,7 +351,6 @@ class EvalExpressionVisitor(val interpreter: Interpreter) extends OberonVisitorA
     case NullValue => NullValue
     case Undef() => Undef()
     case VarExpression(name) => interpreter.env.lookup(name).get
-    case ArraySubscript(a, i) => visitArraySubscriptExpression(ArraySubscript(a, i))
     case AddExpression(left, right) => arithmeticExpression(left, right, (v1: Number, v2: Number) => v1+v2)
     case SubExpression(left, right) => arithmeticExpression(left, right, (v1: Number, v2: Number) => v1-v2)
     case MultExpression(left, right) => arithmeticExpression(left, right, (v1: Number, v2: Number) => v1*v2)
@@ -282,20 +369,48 @@ class EvalExpressionVisitor(val interpreter: Interpreter) extends OberonVisitorA
       val exp = visitFunctionCall(name, args)
       exp
     }
+    case PointerAccessExpression(name) => interpreter.env.lookup(name).get
+    case FieldAccessExpression(exp, name) => visitFieldAccessExpression(exp, ListBuffer(name))
+    case SimpleArrayValue(value) =>
+      val simpleArrayValue = SimpleArrayValue(ListBuffer())
+      value.foreach(v => simpleArrayValue.value.append(v.accept(this)))
+      simpleArrayValue
+    case ArraySubscript(exp,i) =>
+      val intIndex = i.accept(this).asInstanceOf[IntValue].value
+      visitArraySubscriptExpression(exp, ListBuffer(intIndex))
 
-    //TODO FieldAccessExpression
-    //TODO PointerAccessExpression
   }
 
-  def visitArraySubscriptExpression(arraySubscript: ArraySubscript): Expression = {
-    val array =  arraySubscript.arrayBase.accept(this)
-    val idx = arraySubscript.index.accept(this)
-
-    (array, idx) match {
-      case (ArrayValue(values: ListBuffer[Expression], _), IntValue(v)) => values(v)
-      case _ => throw new RuntimeException
+  def visitFieldAccessExpression(expression: Expression, fieldStack: ListBuffer[String]): Expression = {
+    expression match {
+      case FieldAccessExpression(exp, name) => visitFieldAccessExpression(exp, fieldStack.append(name))
+      case VarExpression(_) =>
+        var expValue = expression.accept(this)
+        while (!fieldStack.isEmpty) {
+          val field = fieldStack.last
+          fieldStack.dropRightInPlace(1)
+          for (f <- expValue.asInstanceOf[RecordValue].value if f.name == field) expValue = f.value
+        }
+        expValue
     }
   }
+
+  def visitArraySubscriptExpression(expression: Expression, indexStack: ListBuffer[Int]): Expression = {
+    expression match {
+      case ArraySubscript(arrayBase, i) =>
+        val intIndex = i.accept(this).asInstanceOf[IntValue].value
+        visitArraySubscriptExpression(arrayBase, indexStack.append(intIndex))
+      case VarExpression(_) =>
+        var expValue = expression.accept(this)
+        while (!indexStack.isEmpty) {
+          val index = indexStack.last
+          indexStack.dropRightInPlace(1)
+          expValue = expValue.asInstanceOf[SimpleArrayValue].value(index)
+        }
+        expValue
+    }
+  }
+
   def visitFunctionCall(name: String, args: List[Expression]): Expression = {
     interpreter.callProcedure(name, args)
     val returnValue = interpreter.env.lookup(Values.ReturnKeyWord)

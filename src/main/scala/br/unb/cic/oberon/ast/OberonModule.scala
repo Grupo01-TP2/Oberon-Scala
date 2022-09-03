@@ -183,6 +183,8 @@ case class OrExpression(left: Expression, right: Expression) extends Expression
 case class AndExpression(left: Expression, right: Expression) extends Expression
 case class ModExpression(left: Expression, right: Expression) extends Expression
 case class NotExpression(exp: Expression) extends Expression
+case class FieldValue(name: String, value: Expression) extends Expression
+case class RecordValue(value: ListBuffer[FieldValue]) extends Expression
 
 /* Statements */
 trait Statement {
