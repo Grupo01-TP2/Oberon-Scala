@@ -6,6 +6,8 @@ import br.unb.cic.oberon.ast._
 import br.unb.cic.oberon.parser.ScalaParser
 import br.unb.cic.oberon.transformations.CoreVisitor
 import org.scalatest.funsuite.AnyFunSuite
+import br.unb.cic.oberon.tc.TypeChecker
+import scala.collection.mutable.ListBuffer
 
 class InterpreterTest extends AnyFunSuite {
 
@@ -631,8 +633,12 @@ class InterpreterTest extends AnyFunSuite {
   test("Testing ArrayAssignmentStmt06"){
     val module = ScalaParser.parseResource("stmts/ArrayAssignmentStmt06.oberon")
 
-    assert(module.name == "ArrayAssignmentStmt06")
-    module.accept(interpreter)
+    val coreVisitor = new CoreVisitor()
+    val coreModule = coreVisitor.transformModule(module)
+
+    assert(coreModule.name == "ArrayAssignmentStmt06")
+
+    coreModule.accept(interpreter)
     assert(interpreter.env.lookup("i").isDefined)
     assert(interpreter.env.lookup("arr").isDefined)
 
@@ -687,6 +693,26 @@ class InterpreterTest extends AnyFunSuite {
     module.accept(interpreter)
 
     assert(interpreter.env.lookup("s") == Some(IntValue(6)))
+  }
+
+  test(testName = "Testando o interpretandor da inicializacao de arrays 3") {
+    val module = ScalaParser.parseResource("stmts/ArrayInitializationStmt03.oberon")
+    assert(module.name == "ArrayInitializationStmt03")
+
+    assert(module.stmt.isDefined)
+
+    module.accept(interpreter)
+    val temperature = interpreter.env.lookup("temperatureRecords")
+    assert(temperature == Some(
+      SimpleArrayValue(
+        ListBuffer(
+          RealValue(21.399999618530273), 
+          RealValue(22.299999237060547), 
+          RealValue(35.20000076293945), 
+          RealValue(21.899999618530273), 
+          RealValue(27.399999618530273), 
+          RealValue(22.0), 
+          RealValue(24.899999618530273)))))
   }
 
 

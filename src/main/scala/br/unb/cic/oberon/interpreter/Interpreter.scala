@@ -60,10 +60,18 @@ class Interpreter extends OberonVisitorAdapter {
   }
 
   override def visit(variable: VariableDeclaration): Unit = {
-    env.setGlobalVariable(variable.name, getUndefVariableValue(variable.variableType))
+    env.baseType(variable.variableType) match {
+      case Some(ArrayType(lenght, baseType)) =>
+        env.setGlobalVariable(variable.name, SimpleArrayValue(ListBuffer.fill(lenght)(Undef())))
+      case _ => env.setGlobalVariable(variable.name, Undef())
+    }
   }
 
-  override def getUndefVariableValue(variableType: Type) : Expression = {
+  // override def visit(variable: VariableDeclaration): Unit = {
+  //   env.setGlobalVariable(variable.name, getUndefVariableValue(variable.variableType))
+  // }
+
+  private def getUndefVariableValue(variableType: Type) : Expression = {
     variableType match {
       case ReferenceToUserDefinedType(_) =>
         val Some(baseType) = env.baseType(variableType)
@@ -75,6 +83,7 @@ class Interpreter extends OberonVisitorAdapter {
         variables.foreach(v => recordValue.value.append(
           FieldValue(v.name, 
             getUndefVariableValue(v.variableType))))
+        recordValue
       case PointerType(variableType) =>
         getUndefVariableValue(variableType)
       case _ =>
@@ -95,7 +104,7 @@ class Interpreter extends OberonVisitorAdapter {
     val index = evalExpression(indexExp)
 
     (array, index) match {
-      case (ArrayValue(values, _), IntValue(v)) => values(v) = evalExpression(exp)
+      case (SimpleArrayValue(values), IntValue(v)) => values(v) = evalExpression(exp)
       case _ => throw new RuntimeException
     }
   }
@@ -132,6 +141,7 @@ class Interpreter extends OberonVisitorAdapter {
             val (varName, currentVarExpValue, targetFieldStack) = getRecordAssignmentInputs(record, ListBuffer(field))
             val newFullValue = getNewSimpleArrayValueFromRecordAssignment(currentVarExpValue.asInstanceOf[RecordValue], newValue, targetFieldStack)
             env.setVariable(varName, newFullValue)
+          case _ => throw new RuntimeException("erro.... melhorar")
         }
 
       case SequenceStmt(stmts) =>
@@ -161,7 +171,7 @@ class Interpreter extends OberonVisitorAdapter {
       case ForEachStmt(v, exp, stmt) =>
          val valArray = evalExpression(exp)
          valArray match {
-           case ArrayValue(values, _) => {
+           case SimpleArrayValue(values) => {
              values.foreach(value => {
                  env.setVariable(v, evalExpression(value))
                  stmt.accept(this)
@@ -198,6 +208,7 @@ class Interpreter extends OberonVisitorAdapter {
           case Some(value) => (name, value, targetIndexStack)
           case _ => (name, Undef(), targetIndexStack)
         }
+      case _ => throw new RuntimeException
     }
   }
 
@@ -261,7 +272,8 @@ class Interpreter extends OberonVisitorAdapter {
           case ElseIfStmt(condition, stmt) => if (evalCondition(condition)) {
             stmt.accept(this)
             matched = true
-          }
+            }
+          case _ => throw new RuntimeException
         }
         i += 1
       }
@@ -378,7 +390,11 @@ class EvalExpressionVisitor(val interpreter: Interpreter) extends OberonVisitorA
     case ArraySubscript(exp,i) =>
       val intIndex = i.accept(this).asInstanceOf[IntValue].value
       visitArraySubscriptExpression(exp, ListBuffer(intIndex))
-
+    case ArrayValue(value, _) =>
+      val simpleArrayValue = SimpleArrayValue(ListBuffer())
+      value.foreach(v => simpleArrayValue.value.append(v.accept(this)))
+      simpleArrayValue
+    case _ => throw new RuntimeException("erro.... melhorar")
   }
 
   def visitFieldAccessExpression(expression: Expression, fieldStack: ListBuffer[String]): Expression = {
@@ -392,6 +408,7 @@ class EvalExpressionVisitor(val interpreter: Interpreter) extends OberonVisitorA
           for (f <- expValue.asInstanceOf[RecordValue].value if f.name == field) expValue = f.value
         }
         expValue
+      case _ => throw new RuntimeException("erro.... melhorar")
     }
   }
 
@@ -408,6 +425,7 @@ class EvalExpressionVisitor(val interpreter: Interpreter) extends OberonVisitorA
           expValue = expValue.asInstanceOf[SimpleArrayValue].value(index)
         }
         expValue
+      case _ => throw new RuntimeException("erro.... melhorar")
     }
   }
 

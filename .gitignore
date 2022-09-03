@@ -50,3 +50,6 @@ project/metals.sbt
 .vscode/
 .bloop/
 .scalafmt.conf
+
+# ASDF
+.tool-versions

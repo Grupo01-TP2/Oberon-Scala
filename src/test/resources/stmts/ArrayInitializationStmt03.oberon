@@ -1,0 +1,11 @@
+MODULE ArrayInitializationStmt03;
+
+VAR
+   temperatureRecords : ARRAY 7 OF REAL;
+
+BEGIN
+    temperatureRecords := [21.4, 22.3, 35.2, 21.9, 27.4, 22.0, 24.9];
+    write(temperatureRecords[4])
+END
+
+END ArrayInitializationStmt03.

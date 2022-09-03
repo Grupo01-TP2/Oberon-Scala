@@ -757,7 +757,6 @@ class ParserVisitor {
       ctx.elem.accept(expressionVisitor)
       val elem = expressionVisitor.exp
 
-
       assignmentAlt = ArrayAssignment(array, elem)
     }
 
